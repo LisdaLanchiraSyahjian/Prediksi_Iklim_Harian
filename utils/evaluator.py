@@ -30,20 +30,3 @@ def evaluasi_semua(hasil_training, y_train, y_test, min_curah, max_curah):
 def pilih_model_terbaik(df_eval):
     idx = df_eval["R² Test"].idxmax()
     return df_eval.loc[idx, "Kernel"]
-def render():
-    st.title("⚙️ Kernel & Training SVR")
-    st.markdown("Pilih parameter dan latih kombinasi kernel SVR.")
-
-    if st.session_state["X_train"] is None:
-        st.warning("⚠️ Pembagian data belum selesai.")
-        return
-
-    # DEBUG — hapus setelah selesai cek
-    st.write("Shape X_train:", st.session_state["X_train"].shape)
-    st.write("Kolom X_train:", st.session_state["X_train"].columns.tolist())
-    st.write("min_curah:", st.session_state["min_curah"])
-    st.write("max_curah:", st.session_state["max_curah"])
-
-    # ── Parameter ─────────────────────────────
-    st.subheader("🔧 Parameter SVR")
-    ...
