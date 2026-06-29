@@ -16,28 +16,58 @@ INFO_FITUR = {
     'IMERG_PRECTOT':     ('🌧️ Curah Hujan',           'mm/hari',      0.0,  50.0, 2.0),
 }
 
+# ── Kategori curah hujan BMKG ─────────────────────────────────────────────────
+def kategori_curah_hujan(mm):
+    if mm < 5:
+        return "☀️ Ringan"
+    elif mm < 20:
+        return "🌦️ Sedang"
+    elif mm < 50:
+        return "🌧️ Lebat"
+    else:
+        return "⛈️ Sangat Lebat"
+
+def warna_bar_kategori(mm):
+    if mm < 5:
+        return "#FCD34D"
+    elif mm < 20:
+        return "#60A5FA"
+    elif mm < 50:
+        return "#34D399"
+    else:
+        return "#F87171"
+
+def highlight_row(row):
+    styles = {
+        "☀️ Ringan":       "background-color:#FEF9C3; color:#854D0E;",
+        "🌦️ Sedang":       "background-color:#DBEAFE; color:#1E40AF;",
+        "🌧️ Lebat":        "background-color:#DCFCE7; color:#166534;",
+        "⛈️ Sangat Lebat": "background-color:#FEE2E2; color:#991B1B;",
+    }
+    style = styles.get(row["Kategori"], "")
+    return [style] * len(row)
+
+
 def render():
     st.title("🔮 Prediksi Curah Hujan Harian")
     st.markdown("Masukkan data iklim **3 hari terakhir** untuk prediksi ke depan.")
 
     from utils.predictor import load_model, prediksi_n_hari, buat_df_hasil
 
-    # Tentukan model yang dipakai
+    # ── Tentukan model yang dipakai ───────────────────────────────────────────
     use_trained = (
         st.session_state.get("model_terbaik") is not None
         and st.session_state.get("nama_terbaik") is not None
     )
 
     if use_trained:
-        nama_model = st.session_state["nama_terbaik"]
-        ht         = st.session_state["model_terbaik"]
-        # ht["X_train"] adalah array lag features (n_train × 18) — sudah benar untuk kernel
+        nama_model  = st.session_state["nama_terbaik"]
+        ht          = st.session_state["model_terbaik"]
         X_train_lag = pd.DataFrame(ht["X_train"], columns=st.session_state["X_train"].columns)
-        params = ht.get("params", {})
-        # Ambil gamma & degree dari params kernel terbaik
-        gamma  = params.get("gamma",  st.session_state["gamma_anova"])
-        degree = params.get("degree", st.session_state["degree_anova"])
-        model_dict = {
+        params      = ht.get("params", {})
+        gamma       = params.get("gamma",  st.session_state.get("gamma_anova", 0.01))
+        degree      = params.get("degree", st.session_state.get("degree_anova", 2))
+        model_dict  = {
             "model":     ht["model"],
             "X_train":   X_train_lag,
             "gamma":     gamma,
@@ -59,7 +89,7 @@ def render():
 
     st.divider()
 
-    # Pilih jumlah hari
+    # ── Pilih jumlah hari ─────────────────────────────────────────────────────
     n_hari = st.selectbox(
         "⏱️ Jumlah Hari Prediksi ke Depan",
         [3, 7, 14, 21, 30],
@@ -68,7 +98,7 @@ def render():
 
     st.divider()
 
-    # ── Input manual 3 hari ──────────────────────────────────────────────────
+    # ── Input manual 3 hari ───────────────────────────────────────────────────
     st.subheader("📋 Input Data Iklim 3 Hari Terakhir")
     st.caption("Isi nilai tiap parameter untuk **t-3** (3 hari lalu), **t-2** (2 hari lalu), **t-1** (kemarin).")
 
@@ -79,20 +109,18 @@ def render():
         c1, c2, c3 = st.columns(3)
         with c1:
             v3 = st.number_input("t-3 (3 hari lalu)", min_value=float(vmin), max_value=float(vmax),
-                                  value=float(vdef), step=0.01, format="%.2f",
-                                  key=f"{fitur}_t3")
+                                  value=float(vdef), step=0.01, format="%.2f", key=f"{fitur}_t3")
         with c2:
             v2 = st.number_input("t-2 (2 hari lalu)", min_value=float(vmin), max_value=float(vmax),
-                                  value=float(vdef), step=0.01, format="%.2f",
-                                  key=f"{fitur}_t2")
+                                  value=float(vdef), step=0.01, format="%.2f", key=f"{fitur}_t2")
         with c3:
-            v1 = st.number_input("t-1 (kemarin)", min_value=float(vmin), max_value=float(vmax),
-                                  value=float(vdef), step=0.01, format="%.2f",
-                                  key=f"{fitur}_t1")
+            v1 = st.number_input("t-1 (kemarin)",     min_value=float(vmin), max_value=float(vmax),
+                                  value=float(vdef), step=0.01, format="%.2f", key=f"{fitur}_t1")
         input_data[fitur] = [v3, v2, v1]
         st.markdown("&nbsp;")
 
     st.divider()
+
     if st.button("🚀 Proses Prediksi", type="primary", use_container_width=True):
         with st.spinner("Menghitung prediksi..."):
             try:
@@ -114,38 +142,71 @@ def render():
         st.divider()
         st.subheader(f"📊 Hasil Prediksi {len(df_hasil)} Hari ke Depan")
 
-        # Tabel dulu
-        st.dataframe(df_hasil, use_container_width=True, hide_index=True)
+        # Tambah kolom kategori
+        df_tampil = df_hasil.copy()
+        df_tampil["Kategori"] = df_tampil["Prediksi Curah Hujan (mm)"].apply(kategori_curah_hujan)
+
+        # Tabel dengan highlight warna per kategori
+        st.dataframe(
+            df_tampil.style.apply(highlight_row, axis=1).format({
+                "Prediksi Curah Hujan (mm)": "{:.2f}"
+            }),
+            use_container_width=True, hide_index=True
+        )
 
         st.markdown("&nbsp;")
 
-        # Grafik di bawah tabel
+        # ── Ringkasan kategori ────────────────────────────────────────────────
+        st.subheader("📌 Ringkasan Kategori Curah Hujan")
+        counts = df_tampil["Kategori"].value_counts()
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("☀️ Ringan",       counts.get("☀️ Ringan", 0),       "< 5 mm")
+        with col2:
+            st.metric("🌦️ Sedang",       counts.get("🌦️ Sedang", 0),       "5–20 mm")
+        with col3:
+            st.metric("🌧️ Lebat",        counts.get("🌧️ Lebat", 0),        "20–50 mm")
+        with col4:
+            st.metric("⛈️ Sangat Lebat", counts.get("⛈️ Sangat Lebat", 0), "> 50 mm")
+
+        st.markdown("&nbsp;")
+
+        # ── Grafik bar warna per kategori ─────────────────────────────────────
+        warna_bar = [warna_bar_kategori(mm) for mm in df_tampil["Prediksi Curah Hujan (mm)"]]
+
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_hasil["Tanggal"],
-            y=df_hasil["Prediksi Curah Hujan (mm)"],
-            mode="lines+markers",
-            name="Prediksi",
-            line=dict(color="#EF4444", width=2.5, dash="dot"),
-            marker=dict(size=8, color="#EF4444", symbol="circle"),
-            fill="tozeroy",
-            fillcolor="rgba(239,68,68,0.08)",
+        fig.add_trace(go.Bar(
+            x=df_tampil["Tanggal"],
+            y=df_tampil["Prediksi Curah Hujan (mm)"],
+            marker_color=warna_bar,
+            text=df_tampil["Kategori"],
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>%{y:.2f} mm<br>%{text}<extra></extra>",
         ))
         fig.update_layout(
             title=f"Grafik Prediksi Curah Hujan — {len(df_hasil)} Hari ke Depan",
             xaxis_title="Tanggal",
             yaxis_title="Curah Hujan (mm)",
-            height=400,
+            height=430,
             margin=dict(l=0, r=0, t=50, b=0),
             hovermode="x unified",
+            showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # Download
+        st.caption(
+            "🟡 **Ringan** < 5 mm &nbsp;|&nbsp; "
+            "🔵 **Sedang** 5–20 mm &nbsp;|&nbsp; "
+            "🟢 **Lebat** 20–50 mm &nbsp;|&nbsp; "
+            "🔴 **Sangat Lebat** > 50 mm &nbsp;&nbsp;"
+            "*(Kategori berdasarkan standar BMKG)*"
+        )
+
+        # ── Download Excel ────────────────────────────────────────────────────
         st.divider()
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-            df_hasil.to_excel(writer, index=False, sheet_name="Prediksi")
+            df_tampil.to_excel(writer, index=False, sheet_name="Prediksi")
             if st.session_state.get("df_evaluasi") is not None:
                 st.session_state["df_evaluasi"].to_excel(
                     writer, index=False, sheet_name="Evaluasi Model")
