@@ -6,8 +6,9 @@ def denormalisasi(arr, min_val, max_val):
     return np.array(arr) * (max_val - min_val) + min_val
 
 def hitung_metrik(y_true, y_pred, min_curah, max_curah):
-    y_true = denormalisasi(y_true, min_curah, max_curah)
-    y_pred = denormalisasi(y_pred, min_curah, max_curah)
+    # Denormalisasi dulu, lalu balik dari log1p
+    y_true = np.expm1(denormalisasi(y_true, min_curah, max_curah))
+    y_pred = np.expm1(denormalisasi(y_pred, min_curah, max_curah))
     return {
         "MAE":  round(mean_absolute_error(y_true, y_pred), 3),
         "RMSE": round(np.sqrt(mean_squared_error(y_true, y_pred)), 3),
