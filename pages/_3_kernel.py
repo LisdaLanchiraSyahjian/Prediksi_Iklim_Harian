@@ -31,17 +31,14 @@ def render():
         st.markdown("**🔵 Linear**")
         C_linear = st.selectbox("C — Linear", [1, 10], index=1)
 
-        st.markdown("**🟡 Polynomial**")
-        C_poly     = st.selectbox("C — Polynomial", [1, 10], index=1)
+        st.markdown("**🟡 Polynomial** *(C=10 fixed)*")
         degree_poly = st.selectbox("Degree — Polynomial", [2, 3], index=0)
 
     with col2:
-        st.markdown("**🟢 RBF**")
-        C_rbf     = st.selectbox("C — RBF", [1, 10], index=1)
+        st.markdown("**🟢 RBF** *(C=10 fixed)*")
         gamma_rbf = st.selectbox("Gamma — RBF", [0.01, 2], index=0)
 
-        st.markdown("**🔴 ANOVA RBF**")
-        C_anova      = st.selectbox("C — ANOVA RBF", [1, 10], index=1)
+        st.markdown("**🔴 ANOVA RBF** *(C=10 fixed)*")
         gamma_anova  = st.selectbox("Gamma — ANOVA RBF", [0.01, 2], index=0)
         degree_anova = st.selectbox("Degree — ANOVA RBF", [2, 3], index=0)
 
@@ -62,9 +59,9 @@ def render():
             hasil = train_satu(
                 st.session_state["X_train"], st.session_state["X_test"],
                 st.session_state["y_train"], st.session_state["y_test"],
-                C_linear=C_linear, C_poly=C_poly, degree_poly=degree_poly,
-                C_rbf=C_rbf, gamma_rbf=gamma_rbf,
-                C_anova=C_anova, gamma_anova=gamma_anova, degree_anova=degree_anova,
+                C_linear=C_linear, degree_poly=degree_poly,
+                gamma_rbf=gamma_rbf,
+                gamma_anova=gamma_anova, degree_anova=degree_anova,
             )
             from utils.evaluator import evaluasi_semua, pilih_model_terbaik
             df_eval = evaluasi_semua(

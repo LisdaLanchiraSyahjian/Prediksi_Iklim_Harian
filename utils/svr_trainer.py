@@ -1,9 +1,18 @@
+import numpy as np
+from sklearn.svm import SVR
+
+def _anova_kernel(X1, X2, gamma, degree):
+    K = np.zeros((X1.shape[0], X2.shape[0]))
+    for d in range(X1.shape[1]):
+        diff = X1[:, d:d+1] - X2[:, d].reshape(1, -1)
+        K += np.exp(-gamma * diff**2)
+    return K ** degree
+
 def train_satu(X_train, X_test, y_train, y_test,
-               C_linear=10, C_poly=10, degree_poly=2,
-               C_rbf=10, gamma_rbf=0.01,
-               C_anova=10, gamma_anova=0.01, degree_anova=2,
+               C_linear=10, degree_poly=2,
+               gamma_rbf=0.01, gamma_anova=0.01, degree_anova=2,
                epsilon=0.1):
-    """Train 4 kernel dengan parameter pilihan user."""
+
     X_tr = X_train.values if hasattr(X_train, 'values') else X_train
     X_te = X_test.values  if hasattr(X_test,  'values') else X_test
     y_tr = y_train.values if hasattr(y_train, 'values') else y_train
@@ -12,14 +21,14 @@ def train_satu(X_train, X_test, y_train, y_test,
         f"Linear (C={C_linear})": {
             "type": "linear", "C": C_linear, "epsilon": epsilon
         },
-        f"Polynomial (C={C_poly}, D={degree_poly})": {
-            "type": "poly", "C": C_poly, "epsilon": epsilon, "degree": degree_poly
+        f"Polynomial (C=10, D={degree_poly})": {
+            "type": "poly", "C": 10, "epsilon": epsilon, "degree": degree_poly
         },
-        f"RBF (C={C_rbf}, g={gamma_rbf})": {
-            "type": "rbf", "C": C_rbf, "epsilon": epsilon, "gamma": gamma_rbf
+        f"RBF (C=10, g={gamma_rbf})": {
+            "type": "rbf", "C": 10, "epsilon": epsilon, "gamma": gamma_rbf
         },
-        f"ANOVA RBF (C={C_anova}, g={gamma_anova}, D={degree_anova})": {
-            "type": "precomputed", "C": C_anova, "epsilon": epsilon,
+        f"ANOVA RBF (C=10, g={gamma_anova}, D={degree_anova})": {
+            "type": "precomputed", "C": 10, "epsilon": epsilon,
             "gamma": gamma_anova, "degree": degree_anova
         },
     }
