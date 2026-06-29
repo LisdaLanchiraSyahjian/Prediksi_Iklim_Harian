@@ -16,35 +16,55 @@ def warna_kernel(nama):
 
 def render():
     st.title("⚙️ Kernel & Training SVR")
-    st.markdown("Latih semua 10 kombinasi kernel SVR sesuai skenario penelitian.")
+    st.markdown("Pilih parameter dan latih kombinasi kernel SVR.")
 
     if st.session_state["X_train"] is None:
         st.warning("⚠️ Pembagian data belum selesai.")
         return
 
-    # ── Info Parameter Fixed ──────────────────────────────────────────────────
-    st.subheader("🔧 Parameter Skenario Penelitian")
-    st.info("""
-    **Parameter sudah ditetapkan sesuai skenario penelitian (fixed):**
+    # ── Parameter ─────────────────────────────────────────────────────────────
+    st.subheader("🔧 Parameter SVR")
+    st.caption("Parameter default adalah kombinasi terbaik dari hasil evaluasi penelitian.")
 
-    - 🔵 **Linear** → C = 1 & 10, ε = 0.1
-    - 🟡 **Polynomial** → C = 10, Degree = 2 & 3, ε = 0.1
-    - 🟢 **RBF** → C = 10, γ = 0.01 & 2, ε = 0.1
-    - 🔴 **ANOVA RBF** → C = 10, γ = 0.01 & 2, Degree = 2 & 3, ε = 0.1
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**🔵 Linear**")
+        C_linear = st.selectbox("C — Linear", [1, 10], index=1)
+
+        st.markdown("**🟡 Polynomial**")
+        C_poly     = st.selectbox("C — Polynomial", [1, 10], index=1)
+        degree_poly = st.selectbox("Degree — Polynomial", [2, 3], index=0)
+
+    with col2:
+        st.markdown("**🟢 RBF**")
+        C_rbf     = st.selectbox("C — RBF", [1, 10], index=1)
+        gamma_rbf = st.selectbox("Gamma — RBF", [0.01, 2], index=0)
+
+        st.markdown("**🔴 ANOVA RBF**")
+        C_anova      = st.selectbox("C — ANOVA RBF", [1, 10], index=1)
+        gamma_anova  = st.selectbox("Gamma — ANOVA RBF", [0.01, 2], index=0)
+        degree_anova = st.selectbox("Degree — ANOVA RBF", [2, 3], index=0)
+
+    st.info("""
+    **💡 Rekomendasi parameter terbaik dari evaluasi penelitian:**
+    Linear C=10 · Polynomial C=10, D=2 · RBF C=10, γ=0.01 · ANOVA RBF C=10, γ=0.01, D=2
     """)
 
-    run = st.button("🚀 Mulai Training Semua Kernel", type="primary", use_container_width=True)
+    run = st.button("🚀 Mulai Training", type="primary", use_container_width=True)
 
     if run:
         st.session_state["hasil_training"] = None
         st.session_state["df_evaluasi"]    = None
 
     if st.session_state["hasil_training"] is None and run:
-        with st.spinner("⏳ Melatih 10 kombinasi kernel... Harap tunggu."):
-            from utils.svr_trainer import train_semua
-            hasil = train_semua(
+        with st.spinner("⏳ Melatih kernel... Harap tunggu."):
+            from utils.svr_trainer import train_satu
+            hasil = train_satu(
                 st.session_state["X_train"], st.session_state["X_test"],
                 st.session_state["y_train"], st.session_state["y_test"],
+                C_linear=C_linear, C_poly=C_poly, degree_poly=degree_poly,
+                C_rbf=C_rbf, gamma_rbf=gamma_rbf,
+                C_anova=C_anova, gamma_anova=gamma_anova, degree_anova=degree_anova,
             )
             from utils.evaluator import evaluasi_semua, pilih_model_terbaik
             df_eval = evaluasi_semua(
@@ -78,7 +98,6 @@ def render():
             use_container_width=True, hide_index=True,
         )
 
-        # Bar chart 3 metrik
         st.subheader("📉 Perbandingan Metrik (Test Set)")
         kernels   = df_eval["Kernel"].tolist()
         warna_bar = [warna_kernel(k) for k in kernels]
@@ -103,7 +122,6 @@ def render():
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-        # Model terbaik
         st.divider()
         row = df_eval[df_eval["Kernel"] == nama_terbaik].iloc[0]
         st.markdown(f"### 🏆 Model Terbaik: `{nama_terbaik}`")
